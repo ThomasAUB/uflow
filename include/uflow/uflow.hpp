@@ -122,23 +122,24 @@ namespace uflow {
 
         bool operator()(args_t&... args) override {
 
+            std::tuple<args_t...> argCopy;
+
             for (std::size_t i = 0; i < count; i++) {
                 // copy the arguments : should this be on the stack ?
-                mArgsCopy = std::make_tuple(args...);
+                argCopy = std::make_tuple(args...);
 
                 // process sub flows with the arg copy
-                callFlow(mSubFlows[i], std::make_index_sequence<sizeof...(args_t)>{});
+                callFlow(mSubFlows[i], argCopy, std::make_index_sequence<sizeof...(args_t)>{});
             }
 
             return true;
         }
 
         template<std::size_t ... Is>
-        void callFlow(Flow<args_t...>& f, const std::index_sequence<Is...>&) {
-            f(std::get<Is>(mArgsCopy)...);
+        void callFlow(Flow<args_t...>& f, std::tuple<args_t...>& args, const std::index_sequence<Is...>&) {
+            f(std::get<Is>(args)...);
         }
 
-        std::tuple<args_t...> mArgsCopy;
         Flow<args_t...> mSubFlows[count];
     };
 
