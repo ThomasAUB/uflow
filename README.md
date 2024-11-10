@@ -1,5 +1,20 @@
 # uflow
 
+```mermaid
+
+flowchart LR
+
+flow((flow)) --> B(node) --> C((switch))
+
+C --> f((fork))
+C --> sw2(node)
+C --> sw3(node)
+
+f --> f1(node)
+f --> f2(node)
+
+```
+
 ## Basic example
 
 ```cpp
