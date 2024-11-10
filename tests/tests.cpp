@@ -8,37 +8,51 @@
 
 TEST_CASE("basic uFlow tests") {
 
-    struct NodeA : uflow::INode<int> {
-
-        bool operator()(int& i) override {
+    struct NodeA : uflow::INode<int, int> {
+        bool operator()(int& i, int&) override {
             i--;
-            std::cout << "node A : " << i << std::endl;
             return (i > 0);
         }
-
     };
 
-    struct NodeB : uflow::INode<int> {
-
-        bool operator()(int& i) override {
+    struct NodeB : uflow::INode<int, int> {
+        bool operator()(int& i, int&) override {
             i *= 2;
-            std::cout << "node B : " << i << std::endl;
-            return (i > 0);
+            return (i < 8);
         }
-
     };
-
-
-
-    NodeA n1, n2, n3, n4, n5, n6, n7;
-    uflow::Flow<int> flow(n1, n2, n3, n4, n5, n6, n7);
 
     NodeB nb1, nb2, nb3;
-    uflow::Flow<int> subFlow(nb1, nb2, nb3);
+    uflow::Flow<int, int> subFlow(nb1, nb2, nb3);
 
-    flow.insert(0, subFlow);
+    NodeA n1, n2, n3, n4, n5, n6, n7;
+    uflow::Flow<int, int> flow;
 
-    flow(5);
+    NodeA ns1, ns2;
+    uflow::Fork<2, int, int> fork;
+
+    fork[0] >> ns1;
+    fork.get<1>() >> ns2;
+
+    uflow::Switch<3, int, int> sw;
+
+    sw[0] >> n1;
+
+    sw.set(0);
+
+    uflow::BasicNode<int, int> bn([] (int& a, int& b) { return a < 60; });
+
+    flow >> n1 >> n2 >> n3 >> subFlow >> fork >> sw >> bn >> n4 >> n5 >> n6 >> n7;
+
+    //flow >> n1 >> uflow::Fork([] (int& i) { return i < 0; }) >> n3;
+
+    //int j = 9;
+    //n4(j);
+    int v = 5;
+    int h = 8;
+    flow(v, h);
+
+    flow(5, 2);
 
 }
 
