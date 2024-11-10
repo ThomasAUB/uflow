@@ -44,14 +44,6 @@ TEST_CASE("basic uFlow tests") {
 
     flow >> n1 >> n2 >> n3 >> subFlow >> fork >> sw >> bn >> n4 >> n5 >> n6 >> n7;
 
-    //flow >> n1 >> uflow::Fork([] (int& i) { return i < 0; }) >> n3;
-
-    //int j = 9;
-    //n4(j);
-    int v = 5;
-    int h = 8;
-    flow(v, h);
-
     flow(5, 2);
 
 }
