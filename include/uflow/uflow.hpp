@@ -36,7 +36,15 @@ namespace uflow {
 
     template<typename ... args_t>
     struct INode {
+
         virtual bool operator()(args_t... a) = 0;
+
+        template<typename node_t>
+        auto& operator>>(node_t& n) {
+            mNextNode = &n;
+            return n;
+        }
+
     private:
         friend struct Flow<args_t...>;
         INode<args_t...>* mNextNode = nullptr;
@@ -44,12 +52,10 @@ namespace uflow {
 
 
     template<typename ... args_t>
-    struct Flow : INode<args_t...> {
+    struct Flow {
 
-        using node_t = INode<args_t...>;
-
-        bool operator()(args_t... args) override {
-            node_t* n = mFirst;
+        bool operator()(args_t&&... args) {
+            INode<args_t...>* n = mFirst;
             while (n) {
                 if (!(*n)(args...)) {
                     return false;
@@ -59,23 +65,65 @@ namespace uflow {
             return true;
         }
 
-        auto& operator >> (node_t& node) {
-            if (!mFirst) {
-                mFirst = &node;
-            }
-            else {
-                node_t* n = mFirst;
-                while (n->mNextNode) {
-                    n = n->mNextNode;
-                }
-                n->mNextNode = &node;
-            }
-            return *this;
+        auto& operator >> (INode<args_t...>& node) {
+            mFirst = &node;
+            return node;
         }
 
     private:
-        node_t* mFirst = nullptr;
+        INode<args_t...>* mFirst = nullptr;
+    };
+
+    template<typename std::size_t count, typename ... args_t>
+    struct Switch : INode<args_t...> {
+
+        bool operator()(args_t... args) override {
+            return mFlows[mSelect](args...);
+        }
+
+        auto& operator[](std::size_t i) {
+            return mFlows[i];
+        }
+
+        void select(std::size_t i) {
+            if (i >= count) { return; }
+            mSelect = i;
+        }
+
+    private:
+        Flow<args_t...> mFlows[count];
+        std::size_t mSelect = 0;
     };
 
 
+    template<std::size_t count, typename ... args_t>
+    struct Fork : INode<args_t...> {
+
+        auto& operator[](std::size_t i) {
+            return mFlows[i];
+        }
+
+    private:
+
+        bool operator()(args_t&... args) override {
+
+            std::tuple<args_t...> argcopy;
+
+            for (std::size_t i = 0; i < count; i++) {
+                // copy the arguments : should this be on the stack ?
+                argcopy = std::make_tuple(args...);
+                // process sub flows with the arg copy
+                callFlow(mFlows[i], argcopy, std::make_index_sequence<sizeof...(args_t)>{});
+            }
+            return true;
+        }
+
+        template<std::size_t ... Is>
+        void callFlow(Flow<args_t...>& f, std::tuple<args_t...>& args, const std::index_sequence<Is...>&) {
+            f(std::get<Is>(args)...);
+        }
+
+        Flow<args_t...> mFlows[count];
+
+    };
 }
