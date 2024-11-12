@@ -20,7 +20,7 @@ f --> f2(node)
 ```cpp
 #include "uflow.hpp"
 
-struct Node : uflow::INode<int> {
+struct Node : uflow::INode<int&> {
     bool operator()(int& i) override {
         i--;
         return (i > 0);
@@ -29,7 +29,7 @@ struct Node : uflow::INode<int> {
 
 int main() {
 
-    uflow::Flow<int> flow;
+    uflow::Flow<int&> flow;
 
     Node n1, n2, n3;
 
@@ -41,64 +41,57 @@ int main() {
 }
 ```
 
-## Switch
+## Fork & Switch
 
 ```cpp
 #include "uflow.hpp"
 
-struct Node : uflow::INode<int> {
-    bool operator()(int& i) override {
-        i--;
-        return (i > 0);
+struct TextNode : uflow::INode<> {
+    TextNode(std::string_view inText) : mText(inText) {}
+    bool operator()() override {
+        std::cout << mText << std::endl;
+        return true;
     }
+    std::string_view mText;
 };
 
 int main() {
 
-    uflow::Flow<int> flow;
+    uflow::Flow flow, flow2;
 
-    uflow::BasicNode<int> n1([](int& i) { i++; return (i > 0); });
-    uflow::BasicNode<int> n2([](int& i) { i++; return (i > 0); });
-    uflow::BasicNode<int> n3([](int& i) { i++; return (i > 0); });
+    TextNode my("My");
+    TextNode name("name");
+    TextNode is("is");
+    TextNode john("John");
 
-    uflow::Switch<3, int> sw;
+    TextNode your("Your");
+    TextNode jack("Jack");
 
-    sw[0] >> n2;
-    sw[1] >> n3;
+    TextNode question("?");
+    TextNode exclam("!");
 
-    sw.set(0);
+    uflow::Switch<2> sw;
 
-    flow >> n1 >> sw;
+    flow >> my >> name;
+    flow2 >> your >> name;
 
-    flow(4);
+    name >> is >> sw;
 
-    return 0;
-}
-```
+    sw[0] >> jack;
+    sw[1] >> john;
 
-## Fork
+    uflow::Fork<2> fork;
 
-```cpp
-#include "uflow.hpp"
+    john >> fork;
 
-int main() {
+    fork[0] >> question;
+    fork[1] >> exclam;
 
-    uflow::Flow<int> flow;
+    sw.select(0);
+    flow(); // "My name is jack"
 
-    uflow::BasicNode<int> n1([](int& i) { i++; return (i > 0); });
-    uflow::BasicNode<int> n2([](int& i) { i++; return (i > 0); });
-    uflow::BasicNode<int> n3([](int& i) { i++; return (i > 0); });
-    uflow::BasicNode<int> n4([](int& i) { i++; return (i > 0); });
-
-    uflow::Fork<3, int> fork;
-
-    fork[0] >> n2;
-    fork[1] >> n3;
-    fork[2] >> n4;
-
-    flow >> n1 >> fork;
-
-    flow(4);
+    sw.select(1);
+    flow2(); // "Your name is john?!"
 
     return 0;
 }
