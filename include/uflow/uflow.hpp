@@ -28,110 +28,93 @@
 
 #pragma once
 
-#include "ulink.hpp"
 
 namespace uflow {
 
     template<typename ... args_t>
-    struct INode : ulink::Node<INode<args_t...>> {
-        virtual bool operator()(args_t&... a) = 0;
-    };
+    struct Flow;
 
     template<typename ... args_t>
-    struct BasicNode final : INode<args_t...> {
+    struct INode {
 
-        BasicNode(bool(*f)(args_t& ... args)) : mF(f) {}
+        virtual bool operator()(args_t... a) = 0;
 
-        bool operator()(args_t&... a) override {
-            return mF(a...);
+        template<typename node_t>
+        auto& operator>>(node_t& n) {
+            mNextNode = &n;
+            return n;
         }
 
     private:
-        bool(*mF)(args_t& ... args);
+        friend struct Flow<args_t...>;
+        INode<args_t...>* mNextNode = nullptr;
     };
 
+
     template<typename ... args_t>
-    struct Flow : INode<args_t...> {
+    struct Flow {
 
-        using node_t = INode<args_t...>;
-
-        template<typename ... nodes_t>
-        Flow(nodes_t&... nodes) {
-            append(nodes...);
-        }
-
-        void append(node_t& node) {
-            mNodes.push_back(node);
-        }
-
-        template<typename ... nodes_t>
-        void append(nodes_t&... nodes) {
-            (mNodes.push_back(nodes), ...);
-        }
-
-        void insert(std::size_t idx, node_t& node) {
-            std::size_t counter = 0;
-            for (auto& n : mNodes) {
-                if (counter++ == idx) {
-                    mNodes.insert_before(&n, node);
+        bool operator()(args_t&&... args) {
+            INode<args_t...>* n = mFirst;
+            while (n) {
+                if (!(*n)(args...)) {
+                    return false;
                 }
-            }
-        }
-
-        void operator()(args_t&&... args) {
-            for (auto& n : mNodes) {
-                if (!n(args...)) {
-                    return;
-                }
-            }
-        }
-
-        bool operator()(args_t&... args) override {
-            for (auto& n : mNodes) {
-                if (!n(args...)) {
-                    break;
-                }
+                n = n->mNextNode;
             }
             return true;
         }
 
-        auto& operator >> (node_t& node) {
-            append(node);
-            return *this;
+        auto& operator >> (INode<args_t...>& node) {
+            mFirst = &node;
+            return node;
         }
 
     private:
-        ulink::List<node_t> mNodes;
+        INode<args_t...>* mFirst = nullptr;
+    };
+
+    template<typename std::size_t count, typename ... args_t>
+    struct Switch : INode<args_t...> {
+
+        bool operator()(args_t... args) override {
+            return mFlows[mSelect](args...);
+        }
+
+        auto& operator[](std::size_t i) {
+            return mFlows[i];
+        }
+
+        void select(std::size_t i) {
+            if (i >= count) { return; }
+            mSelect = i;
+        }
+
+    private:
+        Flow<args_t...> mFlows[count];
+        std::size_t mSelect = 0;
     };
 
 
     template<std::size_t count, typename ... args_t>
     struct Fork : INode<args_t...> {
 
-        Flow<args_t...>& operator[](std::size_t i) {
-            return mSubFlows[i];
-        }
-
-        template<std::size_t i>
-        Flow<args_t...>& get() {
-            static_assert(i < count, "Invalid fork index");
-            return mSubFlows[i];
+        auto& operator[](std::size_t i) {
+            return mFlows[i];
         }
 
     private:
 
         bool operator()(args_t&... args) override {
 
-            std::tuple<args_t...> argCopy;
+            std::tuple<args_t...> argcopy;
 
             for (std::size_t i = 0; i < count; i++) {
                 // copy the arguments : should this be on the stack ?
-                argCopy = std::make_tuple(args...);
-
+                argcopy = std::make_tuple(args...);
                 // process sub flows with the arg copy
-                callFlow(mSubFlows[i], argCopy, std::make_index_sequence<sizeof...(args_t)>{});
+                callFlow(mFlows[i], argcopy, std::make_index_sequence<sizeof...(args_t)>{});
             }
-
             return true;
         }
 
@@ -140,34 +123,7 @@ namespace uflow {
             f(std::get<Is>(args)...);
         }
 
-        Flow<args_t...> mSubFlows[count];
+        Flow<args_t...> mFlows[count];
+
     };
-
-    template<std::size_t count, typename ... args_t>
-    struct Switch : INode<args_t...> {
-
-        Flow<args_t...>& operator[](std::size_t i) {
-            return mSubFlows[i];
-        }
-
-        template<std::size_t i>
-        Flow<args_t...>& get() {
-            static_assert(i < count, "Invalid fork index");
-            return mSubFlows[i];
-        }
-
-        void set(std::size_t i) {
-            mIndex = i;
-        }
-
-        bool operator()(args_t&... args) override {
-            if (mIndex >= count) { return false; }
-            return mSubFlows[mIndex](args...);
-        }
-
-    private:
-        std::size_t mIndex = count;
-        Flow<args_t...> mSubFlows[count];
-    };
-
 }

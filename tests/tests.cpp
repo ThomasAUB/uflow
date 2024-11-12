@@ -8,43 +8,50 @@
 
 TEST_CASE("basic uFlow tests") {
 
-    struct NodeA : uflow::INode<int, int> {
-        bool operator()(int& i, int&) override {
-            i--;
-            return (i > 0);
+    struct TextNode : uflow::INode<> {
+        TextNode(std::string_view inText) : mText(inText) {}
+        bool operator()() override {
+            std::cout << mText << std::endl;
+            return true;
         }
+        std::string_view mText;
     };
 
-    struct NodeB : uflow::INode<int, int> {
-        bool operator()(int& i, int&) override {
-            i *= 2;
-            return (i < 8);
-        }
-    };
+    uflow::Flow flow, flow2;
 
-    NodeB nb1, nb2, nb3;
-    uflow::Flow<int, int> subFlow(nb1, nb2, nb3);
+    TextNode my("My");
+    TextNode name("name");
+    TextNode is("is");
+    TextNode john("John");
 
-    NodeA n1, n2, n3, n4, n5, n6, n7;
-    uflow::Flow<int, int> flow;
+    TextNode your("Your");
+    TextNode jack("Jack");
 
-    NodeA ns1, ns2;
-    uflow::Fork<2, int, int> fork;
+    TextNode question("?");
+    TextNode exclam("!");
 
-    fork[0] >> ns1;
-    fork.get<1>() >> ns2;
+    uflow::Switch<2> sw;
 
-    uflow::Switch<3, int, int> sw;
+    flow >> my >> name;
+    flow2 >> your >> name;
 
-    sw[0] >> n1;
+    name >> is >> sw;
 
-    sw.set(0);
+    sw[0] >> jack;
+    sw[1] >> john;
 
-    uflow::BasicNode<int, int> bn([] (int& a, int& b) { return a < 60; });
+    uflow::Fork<2> fork;
 
-    flow >> n1 >> n2 >> n3 >> subFlow >> fork >> sw >> bn >> n4 >> n5 >> n6 >> n7;
+    john >> fork;
 
-    flow(5, 2);
+    fork[0] >> question;
+    fork[1] >> exclam;
+
+    sw.select(0);
+    flow();
+
+    sw.select(1);
+    flow2();
 
 }
 
