@@ -28,60 +28,80 @@
 
 #pragma once
 
+#include <tuple>
+#include <cstddef>
+#include <type_traits>
 
 namespace uflow {
 
-    template<typename ... args_t>
-    struct Flow;
+    template<typename ... args_t> struct Flow;
 
     template<typename ... args_t>
     struct INode {
 
-        virtual bool operator()(args_t... a) = 0;
+        virtual bool operator () (args_t... a) = 0;
 
-        template<typename node_t>
-        auto& operator>>(node_t& n) {
-            mNextNode = &n;
+        auto& operator >> (INode<args_t...>& n) {
+            next = &n;
             return n;
         }
 
     private:
         friend struct Flow<args_t...>;
-        INode<args_t...>* mNextNode = nullptr;
+        INode<args_t...>* next = nullptr;
     };
 
 
     template<typename ... args_t>
     struct Flow {
 
-        bool operator()(args_t&&... args) {
-            INode<args_t...>* n = mFirst;
+        bool operator () (args_t... args) {
+            auto* n = first;
             while (n) {
                 if (!(*n)(args...)) {
                     return false;
                 }
-                n = n->mNextNode;
+                n = n->next;
+            }
+            return true;
+        }
+
+        template<typename ... targs_t>
+        typename std::enable_if_t<
+            (std::is_convertible_v<
+                targs_t,
+                std::remove_reference_t<args_t>
+            > && ...),
+            bool
+        >
+            operator () (targs_t&&... args) {
+            auto* n = first;
+            while (n) {
+                if (!(*n)(args...)) {
+                    return false;
+                }
+                n = n->next;
             }
             return true;
         }
 
         auto& operator >> (INode<args_t...>& node) {
-            mFirst = &node;
+            first = &node;
             return node;
         }
 
     private:
-        INode<args_t...>* mFirst = nullptr;
+        INode<args_t...>* first = nullptr;
     };
 
     template<typename std::size_t count, typename ... args_t>
     struct Switch : INode<args_t...> {
 
-        bool operator()(args_t... args) override {
+        bool operator () (args_t... args) override {
             return mFlows[mSelect](args...);
         }
 
-        auto& operator[](std::size_t i) {
+        auto& operator [] (std::size_t i) {
             return mFlows[i];
         }
 
@@ -91,6 +111,9 @@ namespace uflow {
         }
 
     private:
+
+        auto& operator >> (INode<args_t...>& n);
+
         Flow<args_t...> mFlows[count];
         std::size_t mSelect = 0;
     };
@@ -99,31 +122,33 @@ namespace uflow {
     template<std::size_t count, typename ... args_t>
     struct Fork : INode<args_t...> {
 
-        auto& operator[](std::size_t i) {
+        auto& operator [] (std::size_t i) {
             return mFlows[i];
         }
 
     private:
 
-        bool operator()(args_t&... args) override {
-
-            std::tuple<args_t...> argcopy;
+        bool operator () (args_t... args) override {
 
             for (std::size_t i = 0; i < count; i++) {
-                // copy the arguments : should this be on the stack ?
-                argcopy = std::make_tuple(args...);
+
+                // copy the arguments so their values don't interfere on the fork branches
+                std::tuple<std::decay_t<args_t>...> argcopy(args...);
+
                 // process sub flows with the arg copy
-                callFlow(mFlows[i], argcopy, std::make_index_sequence<sizeof...(args_t)>{});
+                constexpr auto is = std::make_index_sequence<sizeof...(args_t)> {};
+
+                callFlow(mFlows[i], argcopy, is);
             }
+
             return true;
         }
 
-        template<std::size_t ... Is>
-        void callFlow(Flow<args_t...>& f, std::tuple<args_t...>& args, const std::index_sequence<Is...>&) {
+        template<typename tuple_t, std::size_t ... Is>
+        void callFlow(Flow<args_t...>& f, tuple_t& args, const std::index_sequence<Is...>&) {
             f(std::get<Is>(args)...);
         }
 
         Flow<args_t...> mFlows[count];
-
     };
 }

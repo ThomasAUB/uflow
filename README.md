@@ -22,7 +22,12 @@ f --> f2(node)
 
 struct Node : uflow::INode<int&> {
     bool operator()(int& i) override {
-        i--;
+
+        i /= 2;
+
+        std::cout << i << std::endl;
+
+        // returning false will stop the flow execution
         return (i > 0);
     }
 };
@@ -31,17 +36,20 @@ int main() {
 
     uflow::Flow<int&> flow;
 
-    Node n1, n2, n3;
+    Node n1, n2, n3, n4, n5;
 
-    flow >> n1 >> n2 >> n3;
+    flow >> n1 >> n2 >> n3 >> n4 >> n5;
 
-    flow(4);
+    flow(6); // prints 3, 1, 0
 
     return 0;
 }
 ```
 
-## Fork & Switch
+## Switch & Fork
+
+This library provides a switch and a fork type that allows to do complex routings.
+The switch allows to select a flow among others and the fork separates the flow into several ones.
 
 ```cpp
 #include "uflow.hpp"
@@ -49,7 +57,8 @@ int main() {
 struct TextNode : uflow::INode<> {
     TextNode(std::string_view inText) : mText(inText) {}
     bool operator()() override {
-        std::cout << mText << std::endl;
+        // only prints the text it has been constructed with
+        std::cout << mText;
         return true;
     }
     std::string_view mText;
@@ -59,39 +68,41 @@ int main() {
 
     uflow::Flow flow, flow2;
 
-    TextNode my("My");
-    TextNode name("name");
-    TextNode is("is");
+    TextNode my("My ");
+    TextNode name("name ");
+    TextNode is("is ");
     TextNode john("John");
 
-    TextNode your("Your");
+    TextNode your("Your ");
     TextNode jack("Jack");
 
+    TextNode newLine("\n");
     TextNode question("?");
-    TextNode exclam("!");
+    TextNode exclamation("!");
 
     uflow::Switch<2> sw;
 
-    flow >> my >> name;
+    flow >> my >> name >> is >> sw; // connects to the switch
+
     flow2 >> your >> name;
 
-    name >> is >> sw;
+    sw[0] >> jack; // route one output of the switch to a node
+    sw[1] >> john; // and the other output the an other one
 
-    sw[0] >> jack;
-    sw[1] >> john;
+    jack >> newLine;
 
     uflow::Fork<2> fork;
 
-    john >> fork;
+    john >> fork; // connects to the fork
 
-    fork[0] >> question;
-    fork[1] >> exclam;
+    fork[0] >> question; // route the fork
+    fork[1] >> exclamation;
 
-    sw.select(0);
-    flow(); // "My name is jack"
+    sw.select(0); // select the first ouput of the switch
+    flow(); // prints "My name is jack"
 
-    sw.select(1);
-    flow2(); // "Your name is john?!"
+    sw.select(1); // select the second output of the switch
+    flow2(); // prints "Your name is john?!"
 
     return 0;
 }
