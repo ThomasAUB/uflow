@@ -2,6 +2,12 @@
 
 # uflow
 
+Lightweight C++ nodal library for microcontrollers.
+
+- single-header
+- no heap allocation
+- platform independent
+
 ```mermaid
 
 flowchart LR
