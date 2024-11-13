@@ -1,4 +1,12 @@
+![build status](https://github.com/ThomasAUB/uflow/actions/workflows/build.yml/badge.svg) [![License](https://img.shields.io/github/license/ThomasAUB/uflow)](LICENSE)
+
 # uflow
+
+Lightweight C++ nodal library for microcontrollers.
+
+- single-header
+- no heap allocation
+- platform independent
 
 ```mermaid
 
