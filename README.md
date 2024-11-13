@@ -1,3 +1,5 @@
+![build status](https://github.com/ThomasAUB/uflow/actions/workflows/build.yml/badge.svg) [![License](https://img.shields.io/github/license/ThomasAUB/uflow)](LICENSE)
+
 # uflow
 
 ```mermaid
