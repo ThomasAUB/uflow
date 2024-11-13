@@ -12,16 +12,19 @@ Lightweight C++ nodal library for microcontrollers.
 
 flowchart LR
 
-flow((flow)) --> B(node) --> C((switch))
+flow>flow] --> B((node)) --> C(switch)
 
-C --> f((fork))
-C --> sw2(node)
-C --> sw3(node)
+C --> f(fork)
+C --> sw2((node))
+C --> sw3((node))
+sw3 --> B
 
-f --> f1(node)
-f --> f2(node)
+f --> f1((node))
+f --> f2((node))
+
 
 ```
+
 
 ## Basic example
 
@@ -29,6 +32,7 @@ f --> f2(node)
 #include "uflow.hpp"
 
 struct Node : uflow::INode<int&> {
+
     bool operator()(int& i) override {
 
         i /= 2;
@@ -38,6 +42,7 @@ struct Node : uflow::INode<int&> {
         // returning false will stop the flow execution
         return (i > 0);
     }
+
 };
 
 int main() {
@@ -56,6 +61,8 @@ int main() {
 
 ## Switch & Fork
 
+If it's possible to connect several outputs to one node input,
+it's not possible to connect an ouput to several node inputs.
 This library provides a switch and a fork type that allows to do complex routings.
 The switch allows to select a flow among others and the fork separates the flow into several ones.
 
