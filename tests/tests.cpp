@@ -38,6 +38,7 @@ TEST_CASE("basic uFlow tests") {
             s += mText;
             return true;
         }
+        const char* name() const { return mText.data(); }
         std::string_view mText;
     };
 
@@ -48,6 +49,7 @@ TEST_CASE("basic uFlow tests") {
             CHECK(s == mCheckString);
             return true;
         }
+        const char* name() const override { return mCheckString.data(); }
         std::string_view mCheckString;
     };
 
@@ -101,5 +103,13 @@ TEST_CASE("basic uFlow tests") {
 
     // check that the fork results were not taken into account
     CHECK(str == "Your name is John");
+
+
+    flow.print(
+        +[] (const char* txt) {
+            std::cout << txt;
+        }
+    );
+
 }
 

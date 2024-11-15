@@ -11,18 +11,12 @@ Lightweight C++ nodal library for microcontrollers.
 ```mermaid
 
 flowchart LR
-
-flow>flow] --> B((node)) --> C(switch)
-
-C --> f(fork)
-C --> sw2((node))
-C --> sw3((node))
-sw3 --> B
-
-f --> f1((node))
-f --> f2((node))
-
-
+ 
+flow --> My(My ) --> name(name ) --> is(is ) --> switch((switch))
+switch --> Jack(Jack) --> MynameisJack(My name is Jack)
+switch --> John(John) --> fork((fork))
+fork --> ?(?) --> YournameisJohn?(Your name is John?)
+fork --> !(!) --> YournameisJohn!(Your name is John!)
 ```
 
 

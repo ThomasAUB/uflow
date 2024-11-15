@@ -34,6 +34,8 @@
 
 namespace uflow {
 
+    using print_t = void(*)(const char*);
+
     template<typename ... args_t> struct Flow;
 
     template<typename ... args_t>
@@ -41,16 +43,25 @@ namespace uflow {
 
         virtual bool operator () (args_t... a) = 0;
 
+        virtual const char* name() const { return "node"; }
+
         auto& operator >> (INode<args_t...>& n) {
             next = &n;
             return n;
         }
 
     private:
+
+        virtual void print(print_t p) {
+            p(name());
+            p("(");
+            p(name());
+            p(")");
+        }
+
         friend struct Flow<args_t...>;
         INode<args_t...>* next = nullptr;
     };
-
 
     template<typename ... args_t>
     struct Flow {
@@ -90,6 +101,29 @@ namespace uflow {
             return node;
         }
 
+        void print(print_t p, bool printThis = true) {
+
+            if (!first) {
+                return;
+            }
+
+            if (printThis) {
+                p("flow>floq] --> ");
+            }
+
+            auto* n = first;
+
+            do {
+
+                n->print(p);
+                if (n = n->next) {
+                    p(" --> ");
+                }
+
+            } while (n);
+
+        }
+
     private:
         INode<args_t...>* first = nullptr;
     };
@@ -101,6 +135,8 @@ namespace uflow {
             return mFlows[mSelect](args...);
         }
 
+        const char* name() const override { return "switch"; }
+
         auto& operator [] (std::size_t i) {
             return mFlows[i];
         }
@@ -111,6 +147,15 @@ namespace uflow {
         }
 
     private:
+
+        void print(print_t p) override {
+            p("switch((switch))\n");
+            for (std::size_t i = 0; i < count; i++) {
+                p("switch --> ");
+                mFlows[i].print(p, false);
+                p("\n");
+            }
+        }
 
         auto& operator >> (INode<args_t...>& n);
 
@@ -127,6 +172,15 @@ namespace uflow {
         }
 
     private:
+
+        void print(print_t p) override {
+            p("fork((fork))\n");
+            for (std::size_t i = 0; i < count; i++) {
+                p("fork --> ");
+                mFlows[i].print(p, false);
+                p("\n");
+            }
+        }
 
         bool operator () (args_t... args) override {
 
