@@ -136,17 +136,14 @@ namespace uflow {
                 std::tuple<std::decay_t<args_t>...> argcopy(args...);
 
                 // process sub flows with the arg copy
-                constexpr auto is = std::make_index_sequence<sizeof...(args_t)> {};
-
-                callFlow(mFlows[i], argcopy, is);
+                std::apply(
+                    [&] (auto&& ... a) {
+                        mFlows[i](a...);
+                    },
+                    argcopy
+                );
             }
-
             return true;
-        }
-
-        template<typename tuple_t, std::size_t ... Is>
-        void callFlow(Flow<args_t...>& f, tuple_t& args, const std::index_sequence<Is...>&) {
-            f(std::get<Is>(args)...);
         }
 
         Flow<args_t...> mFlows[count];
