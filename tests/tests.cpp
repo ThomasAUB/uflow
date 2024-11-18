@@ -8,6 +8,66 @@
 
 TEST_CASE("basic uFlow tests") {
 
+    struct TextNode : uflow::INode<> {
+        TextNode(std::string_view inText) : mText(inText) {}
+        bool operator()() override {
+            // only prints the text it has been constructed with
+            std::cout << mText;
+            return true;
+        }
+        const char* name() const override { return mText.data(); }
+        std::string_view mText;
+    };
+
+
+    uflow::Flow flow, flow2;
+
+    TextNode my("My ");
+    TextNode name("name ");
+    TextNode is("is ");
+    TextNode john("John");
+
+    TextNode your("Your ");
+    TextNode jack("Jack");
+
+    TextNode newLine("\n");
+    TextNode question("?");
+    TextNode exclamation("!");
+
+    uflow::Switch<2> sw;
+
+    flow >> my >> name >> is >> sw; // connects to the switch
+
+    flow2 >> your >> name;
+
+    sw[0] >> jack; // route one output of the switch to a node
+    sw[1] >> john; // and the other output the an other one
+
+    jack >> newLine;
+
+    uflow::Fork<2> fork;
+
+    john >> fork; // connects to the fork
+
+    fork[0] >> question; // route the fork
+    fork[1] >> exclamation;
+
+    sw.select(0); // select the first ouput of the switch
+    //flow(); // prints "My name is jack"
+
+    sw.select(1); // select the second output of the switch
+    //flow2(); // prints "Your name is john?!"
+
+
+
+    flow2.print(
+        "Flow 2",
+        +[] (const char* txt) {
+            std::cout << txt;
+        }
+    );
+
+    /*
     {
         struct Node : uflow::INode<int&> {
             bool operator()(int& i) override {
@@ -16,18 +76,19 @@ TEST_CASE("basic uFlow tests") {
             }
         };
 
-        uflow::Flow<int&> flow;
+        uflow::Flow<int&> flowi;
 
         Node n1, n2, n3, n4, n5;
 
-        flow >> n1 >> n2 >> n3 >> n4 >> n5;
+        flowi >> n1 >> n2 >> n3 >> n4 >> n5;
 
-        flow(6);
+        flowi(6);
 
         int i = 6;
-        flow(i);
+        flowi(i);
 
         CHECK(i == 0);
+
     }
 
     ///////////////////////////////////////
@@ -106,10 +167,11 @@ TEST_CASE("basic uFlow tests") {
 
 
     flow.print(
+        "My flow",
         +[] (const char* txt) {
             std::cout << txt;
         }
     );
-
+*/
 }
 
