@@ -29,10 +29,14 @@
 #pragma once
 
 #include <tuple>
-#include <cstddef>
+#include <stdint.h>
 #include <type_traits>
 
 namespace uflow {
+
+    using print_txt_t = void(*)(const char*);
+
+    static void printPtr(void* ptr, print_txt_t p);
 
     template<typename ... args_t> struct Flow;
 
@@ -41,16 +45,30 @@ namespace uflow {
 
         virtual bool operator () (args_t... a) = 0;
 
+        virtual const char* name() const { return "node"; }
+
         auto& operator >> (INode<args_t...>& n) {
             next = &n;
             return n;
+        }
+
+    protected:
+
+        void printThis(print_txt_t p) {
+            printPtr(this, p);
+        }
+
+        virtual void print(print_txt_t p) {
+            printThis(p);
+            p("(");
+            p(name());
+            p(")");
         }
 
     private:
         friend struct Flow<args_t...>;
         INode<args_t...>* next = nullptr;
     };
-
 
     template<typename ... args_t>
     struct Flow {
@@ -90,47 +108,97 @@ namespace uflow {
             return node;
         }
 
+        void print(const char* flowName, print_txt_t p) {
+
+            if (*flowName) {
+                printPtr(this, p);
+                p(">");
+                p(flowName);
+                p("] --> ");
+            }
+
+            auto* n = first;
+
+            while (n) {
+
+                n->print(p);
+
+                if (n = n->next) {
+                    p(" --> ");
+                }
+
+            }
+
+            if (*flowName) {
+                p("\n");
+            }
+        }
+
     private:
         INode<args_t...>* first = nullptr;
     };
 
-    template<typename std::size_t count, typename ... args_t>
+    template<uint32_t count, typename ... args_t>
     struct Switch : INode<args_t...> {
 
         bool operator () (args_t... args) override {
             return mFlows[mSelect](args...);
         }
 
-        auto& operator [] (std::size_t i) {
+        const char* name() const override { return "switch"; }
+
+        auto& operator [] (uint32_t i) {
             return mFlows[i];
         }
 
-        void select(std::size_t i) {
+        void select(uint32_t i) {
             if (i >= count) { return; }
             mSelect = i;
         }
 
     private:
 
+        void print(print_txt_t p) override {
+            this->printThis(p);
+            p("((switch))\n");
+            for (uint32_t i = 0; i < count; i++) {
+                this->printThis(p);
+                p(" --> ");
+                mFlows[i].print("", p);
+                p("\n");
+            }
+        }
+
         auto& operator >> (INode<args_t...>& n);
 
         Flow<args_t...> mFlows[count];
-        std::size_t mSelect = 0;
+        uint32_t mSelect = 0;
     };
 
 
-    template<std::size_t count, typename ... args_t>
+    template<uint32_t count, typename ... args_t>
     struct Fork : INode<args_t...> {
 
-        auto& operator [] (std::size_t i) {
+        auto& operator [] (uint32_t i) {
             return mFlows[i];
         }
 
     private:
 
+        void print(print_txt_t p) override {
+            this->printThis(p);
+            p("((fork))\n");
+            for (uint32_t i = 0; i < count; i++) {
+                this->printThis(p);
+                p(" --> ");
+                mFlows[i].print("", p);
+                p("\n");
+            }
+        }
+
         bool operator () (args_t... args) override {
 
-            for (std::size_t i = 0; i < count; i++) {
+            for (uint32_t i = 0; i < count; i++) {
 
                 // copy the arguments so their values don't interfere on the fork branches
                 std::tuple<std::decay_t<args_t>...> argcopy(args...);
@@ -148,4 +216,14 @@ namespace uflow {
 
         Flow<args_t...> mFlows[count];
     };
+
+    static void printPtr(void* ptr, print_txt_t p) {
+        uintptr_t up = (uintptr_t) ptr;
+        for (uint8_t i = 0; i < sizeof(uintptr_t); i++) {
+            char c[3] { (char) (up & 0xF) + 'A', (char) ((up >> 4) & 0xF) + 'A', 0 };
+            p(c);
+            up >>= 8;
+        }
+    }
+
 }

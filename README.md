@@ -11,17 +11,14 @@ Lightweight C++ nodal library for microcontrollers.
 ```mermaid
 
 flowchart LR
-
-flow>flow] --> B((node)) --> C(switch)
-
-C --> f(fork)
-C --> sw2((node))
-C --> sw3((node))
-sw3 --> B
-
-f --> f1((node))
-f --> f2((node))
-
+ 
+Flow>Flow] --> A(node) --> switch((switch))
+switch --> fork((fork))
+switch --> B(node)
+switch --> C(node)
+C --> A
+fork --> D(D)
+fork --> E(E)
 
 ```
 
@@ -69,15 +66,16 @@ The switch allows to select a flow among others and the fork separates the flow 
 ```cpp
 #include "uflow.hpp"
 
-struct TextNode : uflow::INode<> {
-    TextNode(std::string_view inText) : mText(inText) {}
-    bool operator()() override {
-        // only prints the text it has been constructed with
-        std::cout << mText;
-        return true;
-    }
-    std::string_view mText;
-};
+    struct TextNode : uflow::INode<> {
+        TextNode(std::string_view inText) : mText(inText) {}
+        bool operator()() override {
+            // only prints the text it has been constructed with
+            std::cout << mText;
+            return true;
+        }
+        const char* name() const override { return mText.data(); }
+        std::string_view mText;
+    };
 
 int main() {
 
@@ -121,4 +119,45 @@ int main() {
 
     return 0;
 }
+```
+
+## Graph printer
+
+This library contains a graph printer.
+```cpp
+    flow.print(
+        "Flow 1", // flow name
+        +[] (const char* txt) { // function to call for printing
+            std::cout << txt;
+        }
+    );
+```
+This code will output the graph below.
+```mermaid
+flowchart LR
+ADKPPKOPPPPHAAAA>Flow 1] --> AFKPPKOPPPPHAAAA(My ) --> AHKPPKOPPPPHAAAA(name ) --> AJKPPKOPPPPHAAAA(is ) --> AJLPPKOPPPPHAAAA((switch))
+AJLPPKOPPPPHAAAA --> APKPPKOPPPPHAAAA(Jack) --> ABLPPKOPPPPHAAAA(
+)
+AJLPPKOPPPPHAAAA --> ALKPPKOPPPPHAAAA(John) --> AHLPPKOPPPPHAAAA((fork))
+AHLPPKOPPPPHAAAA --> ADLPPKOPPPPHAAAA(?)
+AHLPPKOPPPPHAAAA --> AFLPPKOPPPPHAAAA(!)
+```
+```cpp
+    flow2.print(
+        "Flow 2", // flow name
+        +[] (const char* txt) { // function to call for printing
+            std::cout << txt;
+        }
+    );
+```
+This code will output the graph below.
+```mermaid
+flowchart LR
+IFFIBPJPNPPHAAAA>Flow 2] --> APFIBPJPNPPHAAAA(Your ) --> AJFIBPJPNPPHAAAA(name ) --> ALFIBPJPNPPHAAAA(is ) --> ALGIBPJPNPPHAAAA((switch))
+ALGIBPJPNPPHAAAA --> ABGIBPJPNPPHAAAA(Jack) --> ADGIBPJPNPPHAAAA(
+)
+ALGIBPJPNPPHAAAA --> ANFIBPJPNPPHAAAA(John) --> AJGIBPJPNPPHAAAA((fork))
+AJGIBPJPNPPHAAAA --> AFGIBPJPNPPHAAAA(?)
+AJGIBPJPNPPHAAAA --> AHGIBPJPNPPHAAAA(!)
+
 ```
