@@ -17,8 +17,8 @@ switch --> fork((fork))
 switch --> B(node)
 switch --> C(node)
 C --> A
-fork --> D(D)
-fork --> E(E)
+fork --> D(node)
+fork --> E(node)
 
 ```
 
