@@ -123,7 +123,7 @@ namespace uflow {
 
                 n->print(p);
 
-                if (n = n->next) {
+                if ((n = n->next)) {
                     p(" --> ");
                 }
 
@@ -220,7 +220,7 @@ namespace uflow {
     static void printPtr(void* ptr, print_txt_t p) {
         uintptr_t up = (uintptr_t) ptr;
         for (uint8_t i = 0; i < sizeof(uintptr_t); i++) {
-            char c[3] { (char) (up & 0xF) + 'A', (char) ((up >> 4) & 0xF) + 'A', 0 };
+            char c[3] { static_cast<char>((up & 0xF) + 'A'), static_cast<char>(((up >> 4) & 0xF) + 'A'), 0 };
             p(c);
             up >>= 8;
         }
