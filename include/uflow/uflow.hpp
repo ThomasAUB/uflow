@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE   *
  * SOFTWARE.                                                                       *
  *                                                                                 *
- * github : https://github.com/ThomasAUB/uflow                                   *
+ * github : https://github.com/ThomasAUB/uflow                                     *
  *                                                                                 *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -139,13 +139,11 @@ namespace uflow {
     };
 
     template<uint32_t count, typename ... args_t>
-    struct Switch : INode<args_t...> {
+    struct Select : INode<args_t...> {
 
         bool operator () (args_t... args) override {
             return mFlows[mSelect](args...);
         }
-
-        const char* name() const override { return "switch"; }
 
         auto& operator [] (uint32_t i) {
             return mFlows[i];
@@ -160,7 +158,7 @@ namespace uflow {
 
         void print(print_txt_t p) override {
             this->printThis(p);
-            p("((switch))\n");
+            p("((select))\n");
             for (uint32_t i = 0; i < count; i++) {
                 this->printThis(p);
                 p(" --> ");
@@ -177,7 +175,7 @@ namespace uflow {
 
 
     template<uint32_t count, typename ... args_t>
-    struct Fork : INode<args_t...> {
+    struct Split : INode<args_t...> {
 
         auto& operator [] (uint32_t i) {
             return mFlows[i];
@@ -187,7 +185,7 @@ namespace uflow {
 
         void print(print_txt_t p) override {
             this->printThis(p);
-            p("((fork))\n");
+            p("((split))\n");
             for (uint32_t i = 0; i < count; i++) {
                 this->printThis(p);
                 p(" --> ");
@@ -200,7 +198,8 @@ namespace uflow {
 
             for (uint32_t i = 0; i < count; i++) {
 
-                // copy the arguments so their values don't interfere on the fork branches
+                // copy the arguments so their values don't 
+                // interfere on the fork branches
                 std::tuple<std::decay_t<args_t>...> argcopy(args...);
 
                 // process sub flows with the arg copy
@@ -220,7 +219,11 @@ namespace uflow {
     static void printPtr(void* ptr, print_txt_t p) {
         uintptr_t up = (uintptr_t) ptr;
         for (uint8_t i = 0; i < sizeof(uintptr_t); i++) {
-            char c[3] { static_cast<char>((up & 0xF) + 'A'), static_cast<char>(((up >> 4) & 0xF) + 'A'), 0 };
+            char c[3] {
+                static_cast<char>((up & 0xF) + 'A'),
+                static_cast<char>(((up >> 4) & 0xF) + 'A'),
+                0
+            };
             p(c);
             up >>= 8;
         }

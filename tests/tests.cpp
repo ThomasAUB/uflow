@@ -67,7 +67,7 @@ TEST_CASE("basic uFlow tests") {
     TextNode question("?");
     TextNode exclamation("!");
 
-    uflow::Switch<2, std::string&> sw;
+    uflow::Select<2, std::string&> sw;
 
     flow >> my >> name >> is >> sw;
     flow2 >> your >> name;
@@ -75,7 +75,7 @@ TEST_CASE("basic uFlow tests") {
     sw[0] >> jack;
     sw[1] >> john;
 
-    uflow::Fork<2, std::string&> fork;
+    uflow::Split<2, std::string&> fork;
 
     john >> fork;
 
