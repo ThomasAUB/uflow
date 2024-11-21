@@ -9,19 +9,30 @@ Lightweight C++ nodal library for microcontrollers.
 - platform independent
 
 ```mermaid
-
 flowchart LR
  
-Flow>Flow] --> A(node) --> switch((switch))
-switch --> fork((fork))
-switch --> B(node)
-switch --> C(node)
+Flow>Flow] --> A(node) --> select((select))
+select --> split((split))
+select --> B(node)
+select --> C(node)
 C --> A
-fork --> D(node)
-fork --> E(node)
+split --> D(node)
+split --> E(node)
 
 ```
 
+This graph above can be written like so :
+```cpp
+flow >> node_1 >> select;
+node_3 >> node_1;
+
+select[0] >> split;
+select[1] >> node_2;
+select[2] >> node_3;
+
+split[0] >> node_4;
+split[1] >> node_5;
+```
 
 ## Basic example
 
@@ -56,26 +67,26 @@ int main() {
 }
 ```
 
-## Switch & Fork
+## Select & Split
 
 If it's possible to connect several outputs to one node input,
 it's not possible to connect an ouput to several node inputs.
-This library provides a switch and a fork type that allows to do complex routings.
-The switch allows to select a flow among others and the fork separates the flow into several ones.
+This library provides a select and a split type that allows to do complex routings.
+The select allows to choose a flow among others and the split separates the flow into several ones.
 
 ```cpp
 #include "uflow.hpp"
 
-    struct TextNode : uflow::INode<> {
-        TextNode(std::string_view inText) : mText(inText) {}
-        bool operator()() override {
-            // only prints the text it has been constructed with
-            std::cout << mText;
-            return true;
-        }
-        const char* name() const override { return mText.data(); }
-        std::string_view mText;
-    };
+struct TextNode : uflow::INode<> {
+    TextNode(std::string_view inText) : mText(inText) {}
+    bool operator()() override {
+        // only prints the text it has been constructed with
+        std::cout << mText;
+        return true;
+    }
+    const char* name() const override { return mText.data(); }
+    std::string_view mText;
+};
 
 int main() {
 
@@ -93,28 +104,28 @@ int main() {
     TextNode question("?");
     TextNode exclamation("!");
 
-    uflow::Switch<2> sw;
+    uflow::Select<2> select;
 
-    flow >> my >> name >> is >> sw; // connects to the switch
+    flow >> my >> name >> is >> select; // connects to the select
 
     flow2 >> your >> name;
 
-    sw[0] >> jack; // route one output of the switch to a node
-    sw[1] >> john; // and the other output the an other one
+    select[0] >> jack; // route one output of the select to a node
+    select[1] >> john; // and the other output the an other one
 
     jack >> newLine;
 
-    uflow::Fork<2> fork;
+    uflow::Split<2> split;
 
-    john >> fork; // connects to the fork
+    john >> split; // connects to the split
 
-    fork[0] >> question; // route the fork
-    fork[1] >> exclamation;
+    split[0] >> question; // route the split
+    split[1] >> exclamation;
 
-    sw.select(0); // select the first ouput of the switch
+    select.select(0); // select the first ouput of the select
     flow(); // prints "My name is jack"
 
-    sw.select(1); // select the second output of the switch
+    sw.select(1); // select the second output of the select
     flow2(); // prints "Your name is john?!"
 
     return 0;
@@ -135,10 +146,10 @@ This library contains a graph printer.
 This code will output the graph below.
 ```mermaid
 flowchart LR
-ADKPPKOPPPPHAAAA>Flow 1] --> AFKPPKOPPPPHAAAA(My ) --> AHKPPKOPPPPHAAAA(name ) --> AJKPPKOPPPPHAAAA(is ) --> AJLPPKOPPPPHAAAA((switch))
+ADKPPKOPPPPHAAAA>Flow 1] --> AFKPPKOPPPPHAAAA(My ) --> AHKPPKOPPPPHAAAA(name ) --> AJKPPKOPPPPHAAAA(is ) --> AJLPPKOPPPPHAAAA((select))
 AJLPPKOPPPPHAAAA --> APKPPKOPPPPHAAAA(Jack) --> ABLPPKOPPPPHAAAA(
 )
-AJLPPKOPPPPHAAAA --> ALKPPKOPPPPHAAAA(John) --> AHLPPKOPPPPHAAAA((fork))
+AJLPPKOPPPPHAAAA --> ALKPPKOPPPPHAAAA(John) --> AHLPPKOPPPPHAAAA((split))
 AHLPPKOPPPPHAAAA --> ADLPPKOPPPPHAAAA(?)
 AHLPPKOPPPPHAAAA --> AFLPPKOPPPPHAAAA(!)
 ```
@@ -153,10 +164,10 @@ AHLPPKOPPPPHAAAA --> AFLPPKOPPPPHAAAA(!)
 This code will output the graph below.
 ```mermaid
 flowchart LR
-IFFIBPJPNPPHAAAA>Flow 2] --> APFIBPJPNPPHAAAA(Your ) --> AJFIBPJPNPPHAAAA(name ) --> ALFIBPJPNPPHAAAA(is ) --> ALGIBPJPNPPHAAAA((switch))
+IFFIBPJPNPPHAAAA>Flow 2] --> APFIBPJPNPPHAAAA(Your ) --> AJFIBPJPNPPHAAAA(name ) --> ALFIBPJPNPPHAAAA(is ) --> ALGIBPJPNPPHAAAA((select))
 ALGIBPJPNPPHAAAA --> ABGIBPJPNPPHAAAA(Jack) --> ADGIBPJPNPPHAAAA(
 )
-ALGIBPJPNPPHAAAA --> ANFIBPJPNPPHAAAA(John) --> AJGIBPJPNPPHAAAA((fork))
+ALGIBPJPNPPHAAAA --> ANFIBPJPNPPHAAAA(John) --> AJGIBPJPNPPHAAAA((split))
 AJGIBPJPNPPHAAAA --> AFGIBPJPNPPHAAAA(?)
 AJGIBPJPNPPHAAAA --> AHGIBPJPNPPHAAAA(!)
 
